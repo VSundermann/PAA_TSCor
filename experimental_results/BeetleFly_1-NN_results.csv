@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+BeetleFly,1-NN,0.75,0.00972757900126453,0.011898040771484375

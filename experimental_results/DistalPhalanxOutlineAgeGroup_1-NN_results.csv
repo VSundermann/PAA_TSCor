@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+DistalPhalanxOutlineAgeGroup,1-NN,0.6258992805755396,0.009312311998655787,0.024984359741210938

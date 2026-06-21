@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+ECG5000,Linear SVM,0.9364444444444444,0.016689455999994607,0.5431118011474609

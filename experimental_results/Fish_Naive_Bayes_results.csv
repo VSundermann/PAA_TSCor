@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+Fish,Naive Bayes,0.6628571428571428,0.007184766000023046,1.3587913513183594

@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+ArrowHead,Naive Bayes,0.5485714285714286,0.029605273000001375,1.1355829238891602

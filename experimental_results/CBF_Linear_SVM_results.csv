@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+CBF,Linear SVM,0.88,0.00540150500000891,0.0496826171875

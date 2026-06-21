@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+ElectricDevices,Naive Bayes,0.5158863960575801,0.035469739999996364,11.728147506713867

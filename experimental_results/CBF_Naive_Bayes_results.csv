@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+CBF,Naive Bayes,0.8944444444444445,0.004690757999995299,1.844320297241211

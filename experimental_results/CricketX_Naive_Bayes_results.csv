@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+CricketX,Naive Bayes,0.3871794871794872,0.007740335999997683,1.9398365020751953

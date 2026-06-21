@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+ArrowHead,Linear SVM,0.7828571428571428,0.005734907999908501,0.07427787780761719

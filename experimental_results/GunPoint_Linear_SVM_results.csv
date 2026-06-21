@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+GunPoint,Linear SVM,0.8866666666666667,0.006244464000019434,0.06256484985351562

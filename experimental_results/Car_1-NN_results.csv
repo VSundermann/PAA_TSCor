@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+Car,1-NN,0.7333333333333333,0.015084108999872115,0.016053199768066406

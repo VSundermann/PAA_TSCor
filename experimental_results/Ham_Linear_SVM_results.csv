@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+Ham,Linear SVM,0.6,0.004661446000000069,0.36420249938964844

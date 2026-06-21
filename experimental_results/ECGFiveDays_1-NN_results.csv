@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+ECGFiveDays,1-NN,0.7967479674796748,0.004675397998653352,0.08039379119873047

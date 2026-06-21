@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+DistalPhalanxOutlineCorrect,Linear SVM,0.677536231884058,0.009572154000011324,0.37565040588378906

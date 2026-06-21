@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+FacesUCR,Linear SVM,0.7819512195121952,0.01420170500000495,0.24636363983154297

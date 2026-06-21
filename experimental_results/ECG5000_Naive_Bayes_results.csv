@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+ECG5000,Naive Bayes,0.8824444444444445,0.019242574000003287,9.827152252197266

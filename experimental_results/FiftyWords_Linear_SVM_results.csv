@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+FiftyWords,Linear SVM,0.6527472527472528,0.045527669000080095,1.0493202209472656

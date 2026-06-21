@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+Ham,Naive Bayes,0.7428571428571429,0.004987292000009802,0.7708473205566406

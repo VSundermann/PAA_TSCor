@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+ChlorineConcentration,1-NN,0.65,0.01234310699874186,0.3256702423095703

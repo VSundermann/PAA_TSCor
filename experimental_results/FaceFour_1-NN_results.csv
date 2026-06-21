@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+FaceFour,1-NN,0.7840909090909091,0.009891904999676626,0.018968582153320312

@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+FiftyWords,Naive Bayes,0.5648351648351648,0.03467904000001454,2.32388973236084

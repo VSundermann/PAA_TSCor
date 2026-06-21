@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+Beef,Naive Bayes,0.6666666666666666,0.007241085999993402,0.31955909729003906

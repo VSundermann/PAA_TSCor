@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+Car,Naive Bayes,0.6,0.007463923000003092,0.6309318542480469

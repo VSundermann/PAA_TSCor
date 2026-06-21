@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+FacesUCR,1-NN,0.7692682926829268,0.00531475999923714,0.1863117218017578

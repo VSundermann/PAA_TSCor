@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+Earthquakes,Naive Bayes,0.6762589928057554,0.005522397999982331,2.1510868072509766

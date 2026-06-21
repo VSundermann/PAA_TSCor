@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+ElectricDevices,Linear SVM,0.5087537284398911,16.91224111100007,6.613103866577148

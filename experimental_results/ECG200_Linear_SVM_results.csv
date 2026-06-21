@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+ECG200,Linear SVM,0.82,0.006835092999949666,0.078887939453125

@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+BirdChicken,1-NN,0.55,0.007659345001229667,0.011898040771484375

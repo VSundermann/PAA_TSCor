@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+DistalPhalanxOutlineAgeGroup,Linear SVM,0.6906474820143885,0.011816747000011674,0.2521991729736328

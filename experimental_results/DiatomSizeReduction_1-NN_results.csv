@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+DiatomSizeReduction,1-NN,0.934640522875817,0.005016717999751563,0.03561115264892578

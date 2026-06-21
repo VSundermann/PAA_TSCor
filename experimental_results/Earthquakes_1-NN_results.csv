@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+Earthquakes,1-NN,0.7122302158273381,0.005310645999998087,0.02441120147705078

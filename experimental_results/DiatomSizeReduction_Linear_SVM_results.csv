@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+DiatomSizeReduction,Linear SVM,0.9640522875816994,0.007735561000004054,0.04720878601074219

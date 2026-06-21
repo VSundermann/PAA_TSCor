@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+Car,Linear SVM,0.8666666666666667,0.005187977999980831,0.2694740295410156

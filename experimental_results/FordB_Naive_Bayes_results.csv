@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+FordB,Naive Bayes,0.5345679012345679,0.016695741000006592,14.280444145202637

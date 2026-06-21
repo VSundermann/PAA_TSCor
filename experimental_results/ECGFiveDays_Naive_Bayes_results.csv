@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+ECGFiveDays,Naive Bayes,0.8037166085946573,0.004703207999995129,1.8636550903320312

@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+ECG5000,1-NN,0.9248888888888889,0.012810028998501366,0.3792285919189453

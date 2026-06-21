@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+ChlorineConcentration,Naive Bayes,0.34661458333333334,0.013860590999996703,9.859184265136719

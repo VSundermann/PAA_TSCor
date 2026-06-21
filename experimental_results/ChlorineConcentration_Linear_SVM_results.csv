@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+ChlorineConcentration,Linear SVM,0.6375,0.04392233800001577,0.6001815795898438

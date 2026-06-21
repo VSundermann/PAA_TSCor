@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+GunPoint,1-NN,0.9133333333333333,0.007571751999421394,0.023125648498535156

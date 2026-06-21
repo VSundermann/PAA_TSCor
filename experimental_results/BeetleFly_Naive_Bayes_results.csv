@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+BeetleFly,Naive Bayes,0.75,0.005957746999996516,0.23957252502441406

@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+DiatomSizeReduction,Naive Bayes,0.8660130718954249,0.005503876999995327,1.704010009765625

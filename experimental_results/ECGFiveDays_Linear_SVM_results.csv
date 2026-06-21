@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+ECGFiveDays,Linear SVM,0.9651567944250871,0.0034524489999512298,0.03363323211669922

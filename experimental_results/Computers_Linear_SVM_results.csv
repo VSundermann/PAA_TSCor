@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+Computers,Linear SVM,0.52,0.022351527999944665,1.3801040649414062

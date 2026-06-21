@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+DistalPhalanxOutlineCorrect,1-NN,0.717391304347826,0.013286358000186738,0.03749275207519531

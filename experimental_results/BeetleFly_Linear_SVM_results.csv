@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+BeetleFly,Linear SVM,0.8,0.004311747000087962,0.08279991149902344

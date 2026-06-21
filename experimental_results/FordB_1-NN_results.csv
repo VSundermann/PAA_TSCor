@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+FordB,1-NN,0.6061728395061728,0.03247445200031507,0.17448139190673828

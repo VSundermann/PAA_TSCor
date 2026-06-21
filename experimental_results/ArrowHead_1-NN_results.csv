@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+ArrowHead,1-NN,0.8,0.013210298999183578,0.025270462036132812

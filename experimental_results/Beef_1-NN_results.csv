@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+Beef,1-NN,0.6666666666666666,0.006162896999740042,0.013377189636230469

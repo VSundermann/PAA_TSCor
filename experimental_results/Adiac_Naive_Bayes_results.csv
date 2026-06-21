@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+Adiac,Naive Bayes,0.5677749360613811,0.04391036600009102,1.7192764282226562

@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+CricketX,1-NN,0.5769230769230769,0.011403529000745039,0.04691123962402344

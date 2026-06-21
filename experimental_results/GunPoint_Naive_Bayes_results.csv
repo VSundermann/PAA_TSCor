@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+GunPoint,Naive Bayes,0.7866666666666666,0.006237803999994185,0.4147796630859375

@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+Fish,Linear SVM,0.8571428571428571,0.0071426669999254955,0.6246471405029297

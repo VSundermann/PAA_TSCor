@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+FaceAll,1-NN,0.7136094674556213,0.0070791109992569545,0.15944862365722656

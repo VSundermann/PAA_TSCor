@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+FiftyWords,1-NN,0.6307692307692307,0.006774568999389885,0.053246498107910156

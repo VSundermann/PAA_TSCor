@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+BirdChicken,Naive Bayes,0.55,0.00756045400000005,0.23833084106445312

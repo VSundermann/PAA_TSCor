@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+DistalPhalanxOutlineCorrect,Naive Bayes,0.6739130434782609,0.003978296999989084,0.5351905822753906

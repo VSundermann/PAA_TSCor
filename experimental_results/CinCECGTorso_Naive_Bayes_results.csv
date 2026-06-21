@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+CinCECGTorso,Naive Bayes,0.8731884057971014,0.05405580999999415,34.69859504699707

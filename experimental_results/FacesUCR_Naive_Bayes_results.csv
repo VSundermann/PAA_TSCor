@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+FacesUCR,Naive Bayes,0.7263414634146341,0.01376461300000642,4.39640998840332

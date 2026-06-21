@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+Beef,Linear SVM,0.8333333333333334,0.005893036999964352,0.11283302307128906

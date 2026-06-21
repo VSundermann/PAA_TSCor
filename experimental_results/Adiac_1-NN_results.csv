@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+Adiac,1-NN,0.6112531969309463,0.02344304700000066,0.046782493591308594

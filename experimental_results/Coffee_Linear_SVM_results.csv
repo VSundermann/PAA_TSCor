@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+Coffee,Linear SVM,1.0,0.004894164999996065,0.06625938415527344

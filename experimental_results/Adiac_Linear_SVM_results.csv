@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+Adiac,Linear SVM,0.5217391304347826,0.027143673000068702,0.6363086700439453

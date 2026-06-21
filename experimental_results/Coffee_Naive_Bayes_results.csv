@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+Coffee,Naive Bayes,0.9285714285714286,0.005499056999994423,0.19641685485839844

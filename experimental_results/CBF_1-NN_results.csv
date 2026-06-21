@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+CBF,1-NN,0.8522222222222222,0.013379863999944064,0.0839853286743164

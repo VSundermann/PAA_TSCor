@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+BirdChicken,Linear SVM,0.7,0.005851247999999032,0.08266830444335938

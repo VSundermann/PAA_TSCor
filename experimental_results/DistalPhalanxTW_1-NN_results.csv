@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+DistalPhalanxTW,1-NN,0.6330935251798561,0.011510008998811827,0.02503681182861328

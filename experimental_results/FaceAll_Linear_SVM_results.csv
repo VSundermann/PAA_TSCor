@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+FaceAll,Linear SVM,0.7520710059171598,0.032749341999988246,0.5705318450927734

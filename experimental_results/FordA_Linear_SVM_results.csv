@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+FordA,Linear SVM,0.4863636363636364,9.148510808999958,13.769264221191406

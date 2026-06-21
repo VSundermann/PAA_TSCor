@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+Coffee,1-NN,1.0,0.009578555000189226,0.013142585754394531

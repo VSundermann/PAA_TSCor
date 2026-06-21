@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+FaceAll,Naive Bayes,0.6923076923076923,0.010957374000014397,3.644021987915039

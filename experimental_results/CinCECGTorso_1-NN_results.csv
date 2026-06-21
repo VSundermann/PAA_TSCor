@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+CinCECGTorso,1-NN,0.8971014492753623,0.010389985000074375,0.12294197082519531

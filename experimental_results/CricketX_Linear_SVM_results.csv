@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+CricketX,Linear SVM,0.358974358974359,0.025652441000033832,0.9008007049560547

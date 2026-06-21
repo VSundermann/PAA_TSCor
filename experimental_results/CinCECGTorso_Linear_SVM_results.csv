@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+CinCECGTorso,Linear SVM,0.5101449275362319,0.017499778999990667,0.505462646484375

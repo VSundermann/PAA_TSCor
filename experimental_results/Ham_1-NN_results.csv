@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+Ham,1-NN,0.6,0.03184552099992288,0.01995563507080078

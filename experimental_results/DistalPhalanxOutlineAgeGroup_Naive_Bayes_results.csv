@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+DistalPhalanxOutlineAgeGroup,Naive Bayes,0.7266187050359713,0.00402413599999818,0.3886137008666992

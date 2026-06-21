@@ -1,0 +1,2 @@
+Dataset,Classifier,Accuracy,Computing Time (s),Space Usage (MB)
+Fish,1-NN,0.7828571428571428,0.0055588520008313935,0.02622509002685547
