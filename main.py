@@ -41,14 +41,13 @@ from PySide6.QtCore import Slot
 
 GLOBAL_CONSTRAINT_CODE = {None: 0, "": 0, "itakura": 1, "sakoe_chiba": 2}
 
+# Adaptado do TSLearn, retirava NaNs que estavam somente no final das series
+# agora qualquer NaN e retirado, reduzindo o tamanho total da serie
 def preprocess_timeseries(ts, remove_nans=False):
     if ts.ndim <= 1:
         ts = ts.reshape(-1, 1)
     if remove_nans:
-        sz = len(ts)
-        while sz > 0 and np.all(np.isnan(ts[sz - 1])):
-            sz -= 1
-        ts = ts[:sz]
+        ts = ts[~np.isnan(ts).any(axis=1)]
     return ts
 
 # Codigos de mascaras do TSLearn, utilizados pelo CDTW
@@ -185,6 +184,7 @@ def _sakoe_chiba_bounding(
     x_size: int, y_size: int, radius_percent: float
 ) -> np.ndarray:
 
+    # Garante que a TS maior esteja 'por cima'
     if x_size > y_size:
         return _sakoe_chiba_bounding(y_size, x_size, radius_percent).T
 
@@ -289,7 +289,7 @@ def compute_min_return_path(cost_matrix: np.ndarray) -> list[tuple]:
     alignment.append((0, 0))
     return alignment[::-1]
 
-# Calculo de distancias
+# Calculo de distancias base para os metodos
 @njit(cache=True, fastmath=True)
 def _univariate_euclidean_distance(x: np.ndarray, y: np.ndarray) -> float:
     return np.sqrt(_univariate_squared_distance(x, y))
@@ -371,23 +371,6 @@ def dtw_cost_matrix(
     ValueError
         If x and y are not 1D or 2D arrays.
 
-    Examples
-    --------
-    >>> import numpy as np
-    >>> from aeon.distances import dtw_cost_matrix
-    >>> x = np.array([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])
-    >>> y = np.array([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])
-    >>> dtw_cost_matrix(x, y)
-    array([[  0.,   1.,   5.,  14.,  30.,  55.,  91., 140., 204., 285.],
-           [  1.,   0.,   1.,   5.,  14.,  30.,  55.,  91., 140., 204.],
-           [  5.,   1.,   0.,   1.,   5.,  14.,  30.,  55.,  91., 140.],
-           [ 14.,   5.,   1.,   0.,   1.,   5.,  14.,  30.,  55.,  91.],
-           [ 30.,  14.,   5.,   1.,   0.,   1.,   5.,  14.,  30.,  55.],
-           [ 55.,  30.,  14.,   5.,   1.,   0.,   1.,   5.,  14.,  30.],
-           [ 91.,  55.,  30.,  14.,   5.,   1.,   0.,   1.,   5.,  14.],
-           [140.,  91.,  55.,  30.,  14.,   5.,   1.,   0.,   1.,   5.],
-           [204., 140.,  91.,  55.,  30.,  14.,   5.,   1.,   0.,   1.],
-           [285., 204., 140.,  91.,  55.,  30.,  14.,   5.,   1.,   0.]])
     """
     if x.ndim == 1 and y.ndim == 1:
         _x = x.reshape((1, x.shape[0]))
@@ -450,7 +433,7 @@ def cdtw_distance_matrix(r, t, radius):
     return _cdtw_distance_matrix_njit(r, t, mask)
 
 @njit(nogil=True, cache=True, fastmath=True)
-def cdtw_accumulated_dits_matrix(r, t, d):
+def cdtw_accumulated_dist_matrix(r, t, d):
     M = len(r)
     N = len(t)
     D = np.zeros_like(d)
@@ -566,6 +549,58 @@ def _lcss_cost_matrix(
     return cost_matrix
 
 @njit(nogil=True, cache=True, fastmath=True)
+def lcss_cost_matrix(
+    x: np.ndarray,
+    y: np.ndarray,
+    window: float | None = None,
+    epsilon: float = 1.0,
+    itakura_max_slope: float | None = None,
+) -> np.ndarray:
+    r"""Return the LCSS cost matrix between x and y.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        First time series, either univariate, shape ``(n_timepoints,)``, or
+        multivariate, shape ``(n_channels, n_timepoints)``.
+    y : np.ndarray
+        Second time series, either univariate, shape ``(n_timepoints,)``, or
+        multivariate, shape ``(n_channels, n_timepoints)``.
+    window : float, default=None
+        The window to use for the bounding matrix. If None, no bounding matrix
+        is used.
+    epsilon : float, default=1.
+        Matching threshold to determine if two subsequences are considered close
+        enough to be considered 'common'. The default is 1.
+    itakura_max_slope : float, default=None
+        Maximum slope as a proportion of the number of time points used to create
+        Itakura parallelogram on the bounding matrix. Must be between 0. and 1.
+
+    Returns
+    -------
+    np.ndarray
+        The LCSS cost matrix between x and y.
+
+    Raises
+    ------
+    ValueError
+        If x and y are not 1D or 2D arrays.
+    """
+    if x.ndim == 1 and y.ndim == 1:
+        _x = x.reshape((1, x.shape[0]))
+        _y = y.reshape((1, y.shape[0]))
+        bounding_matrix = create_bounding_matrix(
+            _x.shape[1], _y.shape[1], window, itakura_max_slope
+        )
+        return _lcss_cost_matrix(_x, _y, bounding_matrix, epsilon)
+    if x.ndim == 2 and y.ndim == 2:
+        bounding_matrix = create_bounding_matrix(
+            x.shape[1], y.shape[1], window, itakura_max_slope
+        )
+        return _lcss_cost_matrix(x, y, bounding_matrix, epsilon)
+    raise ValueError("x and y must be 1D or 2D")
+
+@njit(nogil=True, cache=True, fastmath=True)
 def compute_lcss_return_path(
     x: np.ndarray,
     y: np.ndarray,
@@ -656,6 +691,37 @@ def soft_dtw_cost_matrix(
     window: float | None = None,
     itakura_max_slope: float | None = None,
 ) -> np.ndarray:
+    r"""Compute the soft-DTW cost matrix between two time series.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        First time series, either univariate, shape ``(n_timepoints,)``, or
+        multivariate, shape ``(n_channels, n_timepoints)``.
+    y : np.ndarray
+        Second time series, either univariate, shape ``(n_timepoints,)``, or
+        multivariate, shape ``(n_channels, n_timepoints)``.
+    gamma : float, default=1.0
+        Controls the smoothness of the warping. A value of 0.0 is equivalent to DTW.
+    window : float, default=None
+        The window to use for the bounding matrix. If None, no bounding matrix
+        is used. window is a percentage deviation, so if ``window = 0.1``,
+        10% of the series length is the max warping allowed.
+        is used.
+    itakura_max_slope : float, default=None
+        Maximum slope as a proportion of the number of time points used to create
+        Itakura parallelogram on the bounding matrix. Must be between 0. and 1.
+
+    Returns
+    -------
+    np.ndarray (n_timepoints, m_timepoints)
+        soft-DTW cost matrix between x and y.
+
+    Raises
+    ------
+    ValueError
+        If x and y are not 1D or 2D arrays.
+    """
     if s1.ndim == 1 and s2.ndim == 1:
         _x = s1.reshape((1, s1.shape[0]))
         _y = s2.reshape((1, s2.shape[0]))
@@ -737,7 +803,6 @@ def adtw_cost_matrix(
     ------
     ValueError
         If x and y are not 1D or 2D arrays.
-
     """
     if x.ndim == 1 and y.ndim == 1:
         _x = x.reshape((1, x.shape[0]))
@@ -768,8 +833,8 @@ class CTSPU:
         self.space_usage = 0.0
         self.path = None
         self.cost_matrix = None
-        self.mask = None
 
+    # Funcao principal para calculo de distancia entre series temporais
     def _compute_distance(self, ts1, ts2):
         ts1 = preprocess_timeseries(ts1, remove_nans=True)
         ts2 = preprocess_timeseries(ts2, remove_nans=True)
@@ -797,56 +862,49 @@ class CTSPU:
             window = radius_percent if global_constraint == 2 else None
             itakura_slope = slope if global_constraint == 1 else None
 
-            # Need to transpose time series due to a difference between Aeon and TSLearn
             cost_matrix = dtw_cost_matrix(ts1.T, ts2.T, window, itakura_slope)
             path = compute_min_return_path(cost_matrix)
+            # Acessa ultimo valor da matriz, que contem o custo total
             score = cost_matrix[-1, -1] if cost_matrix.size > 0 else float('inf')
-            mask = np.full((sz1, sz2), True)
         elif alg == "CDTW":
             window = dynamic_radius if global_constraint == 2 else None
             itakura_slope = slope if global_constraint == 1 else None
 
+            # Como CDTW foi adaptado seguindo TSLearn as series nao precisam ser transpostas
             cdtw_dist = cdtw_distance_matrix(ts1, ts2, window)
-            cost_matrix = cdtw_accumulated_dits_matrix(ts1, ts2, cdtw_dist)
+            cost_matrix = cdtw_accumulated_dist_matrix(ts1, ts2, cdtw_dist)
             path = cdtw_return_path(ts1, ts2, cost_matrix)
             score = np.sqrt(cost_matrix[-1, -1]) if cost_matrix.size > 0 else float('inf')
             
-            # Reduce cost matrix to original dimensions for plotting (M x N)
+            # Reduz matriz de custo para suas dimensoes originais, para nao dar problema no plot
             cost_matrix = cost_matrix[::2, ::2]
-            mask = np.full((sz1, sz2), True)
         elif alg == "LCSS":
             window = radius_percent if global_constraint == 2 else None
             itakura_slope = slope if global_constraint == 1 else None
 
-            # Need to transpose time series due to a difference between Aeon and TSLearn
-            
+            cost_matrix = lcss_cost_matrix(ts1.T, ts2.T, window, eps, itakura_slope)
             bounding_matrix = create_bounding_matrix(sz1, sz2, window, itakura_slope)
-            cost_matrix = _lcss_cost_matrix(ts1.T, ts2.T, bounding_matrix, eps)
             path = compute_lcss_return_path(ts1.T, ts2.T, eps, bounding_matrix, cost_matrix)
+            # Score e dado por similaridade(quantidade de pontos em comum), onde 0 e identico e 1 e totalmente diferente
             score = 1.0 - (float(cost_matrix[-1, -1]) / min([sz1, sz2])) if cost_matrix.size > 0 else 1.0
-            mask = np.full((sz1, sz2), True)
         elif alg == "SDTW":
             window = radius_percent if global_constraint == 2 else None
             itakura_slope = slope if global_constraint == 1 else None
 
-            # Need to transpose time series due to a difference between Aeon and TSLearn
             cost_matrix = soft_dtw_cost_matrix(ts1.T, ts2.T, gamma, window, itakura_slope)
             path = compute_min_return_path(cost_matrix)
             score = abs(cost_matrix[-1, -1]) if cost_matrix.size > 0 else float('inf')
-            mask = np.full((sz1, sz2), True)
         elif alg == "ADTW":
             window = radius_percent if global_constraint == 2 else None
             itakura_slope = slope if global_constraint == 1 else None
 
-            # Need to transpose time series due to a difference between Aeon and TSLearn
             cost_matrix = adtw_cost_matrix(ts1.T, ts2.T, window, itakura_slope, warp_penalty)
             path = compute_min_return_path(cost_matrix)
             score = cost_matrix[-1, -1] if cost_matrix.size > 0 else float('inf')
-            mask = np.full((sz1, sz2), True)
         else:
-            return False, None, None, None, None
+            return False, None, None, None
             
-        return True, score, path, cost_matrix, mask
+        return True, score, path, cost_matrix
 
     # Execucao unica dos algoritmos de casamento entre 2 series temporais
     def run_single(self):
@@ -858,15 +916,15 @@ class CTSPU:
         start_time = time.perf_counter()
         
         try:
-            success, score, path, cost_matrix, mask = self._compute_distance(self.data[0], self.data[1])
+            success, score, path, cost_matrix = self._compute_distance(self.data[0], self.data[1])
             if not success:
                 tracemalloc.stop()
                 return False
-                
+            
+            # Atualiza variaveis, para serem acessadas pela GUI
             self.score = score
             self.path = path
             self.cost_matrix = cost_matrix
-            self.mask = mask
         except Exception as e:
             print("Computation error:", e)
             tracemalloc.stop()
@@ -874,7 +932,7 @@ class CTSPU:
             
         self.computing_time = time.perf_counter() - start_time
         current, peak = tracemalloc.get_traced_memory()
-        self.space_usage = peak / (1024 * 1024)     # Conversao para MB para melhor interpretacao
+        self.space_usage = peak / (1024 * 1024)     # MB
         tracemalloc.stop()
         
         return True
@@ -891,6 +949,8 @@ class CTSPU:
         all_results = {alg: [] for alg in algorithms}
         total_times = {alg: 0.0 for alg in algorithms}
         
+        # Itera sobre series de teste e treino, realizando casamento 1 a 1 buscando encontrar o par que minimize o score
+        # ou seja, que tenha maior similaridade
         for test_idx, test_class, test_ts in test_data:
             best_scores = {alg: float('inf') for alg in algorithms}
             best_train_idxs = {alg: -1 for alg in algorithms}
@@ -901,13 +961,12 @@ class CTSPU:
             for train_idx, train_class, train_ts in train_data:
                 for alg in algorithms:
                     self.config["algorithm"] = alg
-                    is_similarity = False
                     
                     tracemalloc.start()
                     start_time = time.perf_counter()
 
                     try:
-                        success, score, _, _, _ = self._compute_distance(test_ts, train_ts)
+                        success, score, _, _ = self._compute_distance(test_ts, train_ts)
                     except Exception as e:
                         success = False
                         score = 0.0
@@ -915,11 +974,11 @@ class CTSPU:
                     comp_time = time.perf_counter() - start_time
                     total_times[alg] += comp_time
                     _, peak = tracemalloc.get_traced_memory()
-                    space_usage = peak / (1024 * 1024)
+                    space_usage = peak / (1024 * 1024) # MB
                     tracemalloc.stop()
                     
                     if success:
-                        if (is_similarity and score > best_scores[alg]) or (not is_similarity and score < best_scores[alg]):
+                        if score < best_scores[alg]: # Algoritmos retornam a medida de distancia, entao o melhor score e o menor
                             best_scores[alg] = score
                             best_train_idxs[alg] = train_idx
                             best_train_classes[alg] = train_class
@@ -927,7 +986,7 @@ class CTSPU:
                             best_spaces[alg] = space_usage
 
             for alg in algorithms:
-                same_class = (test_class == best_train_classes[alg])
+                same_class = (test_class == best_train_classes[alg])    # Para calculo de acuracia
                 all_results[alg].append({
                     "Test Index": test_idx,
                     "Train Index": best_train_idxs[alg],
@@ -937,7 +996,7 @@ class CTSPU:
                     "Same Class": same_class
                 })
                 
-        # Restore the original algorithm setting
+        # Restaura config original
         if run_all:
             self.config["algorithm"] = "DTW"
             
@@ -950,7 +1009,8 @@ class CTSPU:
     def run_classifier(self, train_data, test_data, dataset_name, clf_algo):
         if not train_data or not test_data:
             return False, 0.0, 0.0, 0.0
-            
+
+        # Avalia tamanho das series, aplicando padding quando necessario    
         max_len = 0
         for _, _, ts in train_data + test_data:
             if len(ts) > max_len:
@@ -960,7 +1020,8 @@ class CTSPU:
             if len(ts) < max_l:
                 return np.pad(ts, (0, max_l - len(ts)), 'constant')
             return ts
-            
+        
+        # Divisao de treino e teste para classificador baseado no sampling
         X_train = np.array([pad_ts(ts, max_len) for _, _, ts in train_data])
         y_train = np.array([ts_class for _, ts_class, _ in train_data])
         
@@ -991,9 +1052,10 @@ class CTSPU:
             
         comp_time = time.perf_counter() - start_time
         _, peak = tracemalloc.get_traced_memory()
-        space_usage = peak / (1024 * 1024)
+        space_usage = peak / (1024 * 1024) # Em MB
         tracemalloc.stop()
         
+        # Formatacao do log
         results = [{
             "Dataset": dataset_name,
             "Classifier": clf_algo,
@@ -1005,11 +1067,11 @@ class CTSPU:
         
         return True, accuracy, comp_time, space_usage
 
-    @staticmethod
     def compute_spearman_correlation():
-        algorithms = ["DTW", "CDTW", "LCSS", "SDTW", "ADTW"]
+        algorithms = ["DTW", "CDTW", "LCSS", "SDTW", "ADTW", "1-NN", "Linear_SVM", "Naive_Bayes"]
         dataset_accuracies = {}
         
+        # Cria um vetor de acuracias para cada dataset, baseado no que foi encontrado no diretorio de logs
         files = glob.glob("experimental_results/*_results.csv")
         for f in files:
             filename = os.path.basename(f)
@@ -1056,6 +1118,7 @@ class CTSPU:
         n = len(datasets)
         spearman_matrix = np.zeros((n, n))
         
+        # Calcula correlacao de spearman entre datasets i e j com base no vetor de acuracias
         for i in range(n):
             vec_i = [dataset_accuracies[datasets[i]][a] for a in algorithms]
             for j in range(n):
@@ -1064,14 +1127,14 @@ class CTSPU:
                 if np.isnan(corr):
                     corr = 0.0
                 spearman_matrix[i, j] = corr
-                
+        
+        # Salva matriz em formato predeterminado para uso da funcao de Clique
         df_matrix = pd.DataFrame(spearman_matrix, index=datasets, columns=datasets)
         os.makedirs("experimental_results", exist_ok=True)
         df_matrix.to_csv("experimental_results/spearman_correlation_matrix.csv")
         
         return True, spearman_matrix, datasets
 
-    @staticmethod
     def compute_max_clique_groups(matrix, labels, threshold):
         G = nx.Graph()
         G.add_nodes_from(labels)
@@ -1091,9 +1154,9 @@ class CTSPU:
             subgraph = G.subgraph(remaining_nodes)
             cliques = list(nx.find_cliques(subgraph))
             if not cliques:
-                max_cl = [list(remaining_nodes)[0]]
+                max_cl = [list(remaining_nodes)[0]]     # Se nao houver clique, pega o primeiro vertice restante
             else:
-                max_cl = max(cliques, key=len)
+                max_cl = max(cliques, key=len)  # Pega o maior clique encontrado
             
             groups.append(max_cl)
 
@@ -1102,6 +1165,7 @@ class CTSPU:
             
         return G, groups
 
+    # Salva resultados de experimentos em um diretorio predeterminado
     def save_results(self, results_list, dataset_name, algorithm_name, total_time=None):
         if not results_list:
             return
@@ -1114,8 +1178,8 @@ class CTSPU:
         df.to_csv(filename, index=False)
         print(f"Results saved to {filename}")
 
-# Retorna um sample do dataset, garante representatividade de todas as classes atraves do Largest Remainder Method
-# Amostra é dividida em: classe, indice da serie temporal, serie temporal
+# Retorna um sample do dataset, garantindo representatividade de todas as classes atraves do Largest Remainder Method
+# Amostra e dividida em: classe, indice da serie temporal, serie temporal
 def stratified_sample(data, percentage):
     if percentage >= 100.0 or percentage <= 0.0:
         return data
@@ -1135,6 +1199,7 @@ def stratified_sample(data, percentage):
     # Calculo da quantidade exata de amostras por classe
     exact_counts = {c: target_total * (len(items) / len(data)) for c, items in class_groups.items()}
     
+    # Vetores para acompanhar quantas series foram escolhidas, e quantas sobraram
     assignments = {}
     remainders = {}
     for c, exact in exact_counts.items():
@@ -1148,6 +1213,7 @@ def stratified_sample(data, percentage):
             
     allocated = sum(assignments.values())
     
+    # Adiciona series por classe, atualizando sua representatividade na amostra
     if allocated < target_total:
         shortfall = target_total - allocated
         sorted_classes = sorted([c for c in class_groups if remainders[c] >= 0], key=lambda x: remainders[x], reverse=True)
@@ -1156,7 +1222,8 @@ def stratified_sample(data, percentage):
             
         for i in range(shortfall):
             assignments[sorted_classes[i % len(sorted_classes)]] += 1
-            
+    
+    # Remove series de grupos mais representativos, se numero selecionado exce
     elif allocated > target_total:
         overage = allocated - target_total
         for _ in range(overage):
@@ -1189,7 +1256,7 @@ class DataSideBar(QtWidgets.QWidget):
         self.selected_dataset = ""
         self.layout = QtWidgets.QVBoxLayout(self)
 
-        # Upper table for dataset folders
+        # Tabela superior para listagem dos datasets
         self.dataset_table = QtWidgets.QTableWidget()
         self.dataset_table.setColumnCount(1)
         self.dataset_table.setHorizontalHeaderLabels(["Dataset Folders"])
@@ -1197,29 +1264,34 @@ class DataSideBar(QtWidgets.QWidget):
         self.dataset_table.cellDoubleClicked.connect(self.on_dataset_double_clicked)
         self.layout.addWidget(self.dataset_table)
 
-        # Bottom tab view for Train and Test files
+        # Tabela inferior para listagem das series temporais
         self.tab_widget = QtWidgets.QTabWidget()
         
+        # Tab especifica para series de treino
         self.train_table = QtWidgets.QTableWidget()
         self.train_table.setSortingEnabled(False)
         self.train_table.setColumnCount(3)
+        # Tabela mostra o index da serie no arquivo, sua classe, e uma checkbox para selecionar
         self.train_table.setHorizontalHeaderLabels(["Select", "TS Index", "Class"])
-        self.train_table.verticalHeader().setVisible(False)
+        self.train_table.verticalHeader().setVisible(False) # Opcao de indice, seria confuso com o item acima
         self.train_table.horizontalHeader().setStretchLastSection(True)
         self.train_table.setSortingEnabled(True)
         self.tab_widget.addTab(self.train_table, "Train")
         
+        # Tab especifica para series de treino
         self.test_table = QtWidgets.QTableWidget()
         self.test_table.setSortingEnabled(False)
         self.test_table.setColumnCount(3)
+        # Tabela mostra o index da serie no arquivo, sua classe, e uma checkbox para selecionar
         self.test_table.setHorizontalHeaderLabels(["Select", "TS Index", "Class"])
-        self.test_table.verticalHeader().setVisible(False)
+        self.test_table.verticalHeader().setVisible(False)  # Opcao de indice, seria confuso com o item acima
         self.test_table.horizontalHeader().setStretchLastSection(True)
         self.test_table.setSortingEnabled(True)
         self.tab_widget.addTab(self.test_table, "Test")
 
         self.layout.addWidget(self.tab_widget)
         
+        # Logica para garantir que apenas 2 series temporais possam ser selecionadas, independente do conjunto
         self.checked_items = []
         self.train_table.itemChanged.connect(self.on_item_changed)
         self.test_table.itemChanged.connect(self.on_item_changed)
@@ -1229,6 +1301,8 @@ class DataSideBar(QtWidgets.QWidget):
             if item.checkState() == QtCore.Qt.Checked:
                 if item not in self.checked_items:
                     self.checked_items.append(item)
+
+                    # Verifica se um terceiro item foi selecionado, coloca ele no lugar do mais antigo
                     if len(self.checked_items) > 2:
                         oldest = self.checked_items.pop(0)
                         oldest.tableWidget().blockSignals(True)
@@ -1238,6 +1312,7 @@ class DataSideBar(QtWidgets.QWidget):
                 if item in self.checked_items:
                     self.checked_items.remove(item)
 
+    # Adiciona os datasets no diretorio para a primeira tabela
     def populate_datasets(self, dir_name):
         self.dataset_dir = dir_name
         self.dataset_table.setRowCount(0)
@@ -1252,12 +1327,14 @@ class DataSideBar(QtWidgets.QWidget):
             item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
             self.dataset_table.setItem(row, 0, item)
 
+    # Selecao de dataset, coleta suas series temporais e guarda o dataset selecionado
     def on_dataset_double_clicked(self, row, column):
         dataset_name = self.dataset_table.item(row, column).text()
         dataset_path = os.path.join(self.dataset_dir, dataset_name)
         self.selected_dataset = dataset_path
         self.populate_timeseries(dataset_path)
 
+    # Adiciona series temporais de treino e teste do dataset selecionado na segunda tabela
     def populate_timeseries(self, dataset_path):
         self.checked_items.clear()
         self.train_table.setRowCount(0)
@@ -1283,6 +1360,7 @@ class DataSideBar(QtWidgets.QWidget):
         else:
             self.current_test_file = None
 
+    # Carrega as series temporais, realizando um preprocessamento das classes e indices
     def _load_file_into_table(self, filepath, table):
         try:
             with open(filepath, 'r') as f:
@@ -1301,22 +1379,26 @@ class DataSideBar(QtWidgets.QWidget):
                 parts = line.split()
                 
             ts_class = parts[0] if len(parts) > 0 else ""
-                
+            
+            # Checkbox para selecao das series
             item_check = QtWidgets.QTableWidgetItem()
             item_check.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
             item_check.setCheckState(QtCore.Qt.Unchecked)
             table.setItem(row, 0, item_check)
-            
+
+            # Indice da serie no arquivo
             item_index = QtWidgets.QTableWidgetItem(str(row))
             item_index.setFlags(item_index.flags() & ~QtCore.Qt.ItemIsEditable)
             table.setItem(row, 1, item_index)
             
+            # Classe da serie no arquivo
             item_class = QtWidgets.QTableWidgetItem(ts_class)
             item_class.setFlags(item_class.flags() & ~QtCore.Qt.ItemIsEditable)
             table.setItem(row, 2, item_class)
             
         table.blockSignals(False)
 
+    # Carrega as series selecionadas pelo usuario para execucao individual
     def get_selected_data(self):
         data = []
         for item in self.checked_items:
@@ -1344,9 +1426,11 @@ class DataSideBar(QtWidgets.QWidget):
                 print("Error reading data:", e)
         return data
 
+    # Coleta o path do dataset selecionado
     def get_selected_dataset(self):
         return os.path.basename(self.selected_dataset) if hasattr(self, 'selected_dataset') and self.selected_dataset else "dataset"
 
+    # Coleta todas as series de treino e teste que serao usadas para execucao de um algoritmo para o dataset
     def get_all_data(self):
         def read_file(filepath):
             data = []
@@ -1382,10 +1466,11 @@ class VisualizationFrame(QtWidgets.QWidget):
         self.layout = QtWidgets.QVBoxLayout(self)
         self.tab_widget = QtWidgets.QTabWidget()
         
-        # Define tabs
+        # Define quatro tabs para visualizacao
         tabs = ["TS Correlation", "TS Heatmap", "Spearman Matrix", "Correlation Graph"]
         self.canvases = {}
 
+        # Cria um widget para cada tab definida
         for tab_name in tabs:
             tab = QtWidgets.QWidget()
             tab_layout = QtWidgets.QVBoxLayout(tab)
@@ -1403,20 +1488,26 @@ class VisualizationFrame(QtWidgets.QWidget):
         fig, canvas = self.canvases["TS Correlation"]
         fig.clear()
         ax = fig.add_subplot(111)
+
+        # Series com NaN dao erro, e devem ser pre-processadas aqui tambem
+        ts1 = preprocess_timeseries(ts1, True)
+        ts2 = preprocess_timeseries(ts2, True)
         
         if ts1.ndim > 1:
             ts1 = ts1.flatten()
         if ts2.ndim > 1:
             ts2 = ts2.flatten()
-            
+        
+        # Calcula um offset baseado nos valores maximo e minimo das series, para evitar sobreposicoes
         offset = np.max(ts1) - np.min(ts2) + (np.max(ts1) - np.min(ts1)) * 0.5
         ax.plot(ts1, label="TS 1", color="blue")
         ax.plot(ts2 + offset, label="TS 2", color="orange")
         
+        # Desenha uma linha demonstrando quais pontos da TS1 foram casados com a TS2
         for i, j in path:
             ax.plot([i, j], [ts1[int(round(i))], ts2[int(round(j))] + offset], color='gray', alpha=0.3, linewidth=1.0)
             
-        ax.set_title("Time Series Alignment")
+        #ax.set_title("Time Series Alignment")
         ax.legend()
         fig.tight_layout()
         canvas.draw()
@@ -1432,11 +1523,12 @@ class VisualizationFrame(QtWidgets.QWidget):
         im = ax.imshow(matrix_to_plot, origin='lower', cmap='viridis', interpolation='nearest', aspect='auto')
         fig.colorbar(im, ax=ax)
         
+        # Plota o melhor caminho em vermelho
         path_x = [p[1] for p in path]
         path_y = [p[0] for p in path]
         ax.plot(path_x, path_y, color='red', linewidth=2, label="Optimal Path")
         
-        ax.set_title("Accumulated Cost Matrix & Path")
+        #ax.set_title("Accumulated Cost Matrix & Path")
         ax.set_xlabel("TS 2 Index")
         ax.set_ylabel("TS 1 Index")
         ax.legend()
@@ -1451,6 +1543,7 @@ class VisualizationFrame(QtWidgets.QWidget):
         im = ax.imshow(spearman_matrix, origin='lower', cmap='coolwarm', interpolation='nearest', aspect='auto', vmin=-1, vmax=1)
         fig.colorbar(im, ax=ax)
         
+        # Adiciona nomes dos datasets nos eixos
         ax.set_xticks(np.arange(len(labels)))
         ax.set_yticks(np.arange(len(labels)))
         ax.set_xticklabels(labels, rotation=45, ha='right')
@@ -1461,7 +1554,7 @@ class VisualizationFrame(QtWidgets.QWidget):
                 for j in range(len(labels)):
                     ax.text(j, i, f"{spearman_matrix[i, j]:.2f}", ha="center", va="center", color="black" if abs(spearman_matrix[i, j]) < 0.5 else "white")
         
-        ax.set_title("Spearman Correlation Between Datasets")
+        #ax.set_title("Spearman Correlation Between Datasets")
         fig.tight_layout()
         canvas.draw()
 
@@ -1471,8 +1564,10 @@ class VisualizationFrame(QtWidgets.QWidget):
         ax = fig.add_subplot(111)
         
         pos = nx.spring_layout(G, seed=42)
+        # Mapa de cores para representar os cliques
         colors = ['#e6194B', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#42d4f4', '#f032e6', '#bfef45', '#fabed4']
         
+        # Itera sobre os grupos de vertices que representam os cliques, colorindo eles
         for idx, group in enumerate(groups):
             color = colors[idx % len(colors)]
             nx.draw_networkx_nodes(G, pos, nodelist=group, node_color=color, ax=ax, label=f"Group {idx+1}")
@@ -1480,7 +1575,7 @@ class VisualizationFrame(QtWidgets.QWidget):
         nx.draw_networkx_edges(G, pos, ax=ax, alpha=0.5)
         nx.draw_networkx_labels(G, pos, ax=ax, font_size=8)
         
-        ax.set_title("Dataset Correlation Graph (Max Clique Grouping)")
+        #ax.set_title("Dataset Correlation Graph (Max Clique Grouping)")
         ax.legend()
         fig.tight_layout()
         canvas.draw()
@@ -1491,6 +1586,7 @@ class ControlPanel(QtWidgets.QWidget):
 
         self.layout = QtWidgets.QVBoxLayout(self)
 
+        # Campos para definir amostragem de Treino e Teste
         self.train_sampling_spinbox = QtWidgets.QDoubleSpinBox()
         self.train_sampling_spinbox.setRange(1.0, 100.0)
         self.train_sampling_spinbox.setValue(20.0)
@@ -1504,13 +1600,14 @@ class ControlPanel(QtWidgets.QWidget):
         sampling_layout.addRow("Test Sampling (%):", self.test_sampling_spinbox)
         self.layout.addLayout(sampling_layout)
 
-        # Upper box: Tabs
+        # Tabs: Casamento de Series // Outros
         self.tab_widget = QtWidgets.QTabWidget()
         
-        # Single Execution Tab
+        # Tab para casamento de series temporais - Execucao Unica ou por Dataset
         self.single_exec_tab = QtWidgets.QWidget()
         self.single_exec_layout = QtWidgets.QFormLayout(self.single_exec_tab)
         
+        # Parametros dos algoritmos
         self.radius_spinbox = QtWidgets.QDoubleSpinBox()
         self.radius_spinbox.setValue(10.0)
         self.slope_spinbox = QtWidgets.QDoubleSpinBox()
@@ -1521,14 +1618,16 @@ class ControlPanel(QtWidgets.QWidget):
         self.gamma_spinbox.setValue(1.0)
         self.warpPenalty = QtWidgets.QDoubleSpinBox()
         self.warpPenalty.setValue(1.0)
-        
+
+        self.single_exec_layout.setVerticalSpacing(15)
+
+        # Tipo da janela de restricao
         self.constraint_combo = QtWidgets.QComboBox()
         self.constraint_combo.addItems(["Sakoe Chiba", "Itakura"])
         
+        # Algoritmos implememtados
         self.algorithm_combo = QtWidgets.QComboBox()
         self.algorithm_combo.addItems(["DTW", "CDTW", "LCSS", "SDTW", "ADTW"])
-
-        self.single_exec_layout.setVerticalSpacing(15)
 
         self.single_exec_layout.addRow("Algorithm:", self.algorithm_combo)
         self.single_exec_layout.addRow("Constraint (All except CDTW):", self.constraint_combo)
@@ -1538,33 +1637,40 @@ class ControlPanel(QtWidgets.QWidget):
         self.single_exec_layout.addRow("Gamma (SDTW):", self.gamma_spinbox)
         self.single_exec_layout.addRow("Warp Penalty (ADTW):", self.warpPenalty)
         
+        # Botao para execucao de teste individual
         self.run_single_button = QtWidgets.QPushButton("Run TS Correlation")
         self.single_exec_layout.addRow(self.run_single_button)
 
+        # Checkbox para rodar todos os algoritmos com as configuracoes especificadas para o dataset
         self.run_all_algorithms_checkbox = QtWidgets.QCheckBox("Run All Algorithms")
         self.single_exec_layout.addRow(self.run_all_algorithms_checkbox)
 
+        # Botao para execucao de dataset
         self.run_dataset_button = QtWidgets.QPushButton("Run Dataset Correlation")
         self.single_exec_layout.addRow(self.run_dataset_button)
         
         self.tab_widget.addTab(self.single_exec_tab, "Correlator")
         
-        # Batch Experiments Tab
+        # Tab de Classificadores, Spearman e Grafo
         self.batch_exec_tab = QtWidgets.QWidget()
         self.batch_exec_layout = QtWidgets.QFormLayout(self.batch_exec_tab)
         
+        # Classificadores implementados
         self.classifier_combo = QtWidgets.QComboBox()
         self.classifier_combo.addItems(["1-NN", "Naive Bayes", "Linear SVM"])
         self.batch_exec_layout.addRow("Classifier Algorithm:", self.classifier_combo)
 
         self.batch_exec_layout.setVerticalSpacing(15)
         
+        # Execucao do classificador
         self.run_classifier_button = QtWidgets.QPushButton("Run Classifier")
         self.batch_exec_layout.addRow(self.run_classifier_button)
         
+        # Execucao da Matriz de Spearman, com base nos logs
         self.compute_spearman_btn = QtWidgets.QPushButton("Compute Spearman Matrix")
         self.batch_exec_layout.addRow(self.compute_spearman_btn)
         
+        # Execucao do clique maximo, com threshold escolhido
         self.graph_threshold_spinbox = QtWidgets.QDoubleSpinBox()
         self.graph_threshold_spinbox.setRange(0.0, 1.0)
         self.graph_threshold_spinbox.setSingleStep(0.05)
@@ -1574,11 +1680,11 @@ class ControlPanel(QtWidgets.QWidget):
         self.generate_clique_btn = QtWidgets.QPushButton("Generate Clique Graph")
         self.batch_exec_layout.addRow(self.generate_clique_btn)
         
-        self.tab_widget.addTab(self.batch_exec_tab, "Classifier")
+        self.tab_widget.addTab(self.batch_exec_tab, "Others")
 
         self.layout.addWidget(self.tab_widget)
 
-        # Bottom box: Execution Data
+        # Caixa de metricas da execucao
         self.execution_group = QtWidgets.QGroupBox("Execution Data")
         self.execution_layout = QtWidgets.QFormLayout(self.execution_group)
         
@@ -1592,6 +1698,7 @@ class ControlPanel(QtWidgets.QWidget):
 
         self.layout.addWidget(self.execution_group)
 
+    # Coleta os parametros para execucao no CTSPU
     def get_configuration(self):
         return {
             "algorithm": self.algorithm_combo.currentText(),
@@ -1607,6 +1714,7 @@ class ControlPanel(QtWidgets.QWidget):
             "test_sampling_percentage": getattr(self, "test_sampling_spinbox", None) and self.test_sampling_spinbox.value() or 100.0
         }
 
+    # Atualiza resultados e metricas apos execucao
     def set_execution_data(self, score, computing_time, space_usage):
         self.score_label.setText(f"{score:.4f}")
         self.time_label.setText(f"{computing_time:.4f} s")
@@ -1618,17 +1726,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setWindowTitle("Time Series Correlator")
 
-        # Set VisualizationFrame as the central widget
+        # Inicia VisualizationFrame como Widget central
         self.visualization_frame = VisualizationFrame()
         self.setCentralWidget(self.visualization_frame)
 
-        # Create and add the DataSideBar as a dock widget
+        # Cria DataSideBar e ControlPanel como docks, mas sem features para fechar ou mover
         self.data_sidebar = DataSideBar()
         self.sidebar_dock = QtWidgets.QDockWidget("Data", self, features=QtWidgets.QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
         self.sidebar_dock.setWidget(self.data_sidebar)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.sidebar_dock)
 
-        # Create and add the ControlPanel as a dock widget
         self.control_panel = ControlPanel()
         self.control_dock = QtWidgets.QDockWidget("Control Panel", self, features=QtWidgets.QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
         self.control_dock.setWidget(self.control_panel)
@@ -1640,13 +1747,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.control_panel.compute_spearman_btn.clicked.connect(self.create_spearmann_correlation)
         self.control_panel.generate_clique_btn.clicked.connect(self.generate_clique_graph)
 
+        # Cria a barrinha para abrir dataset
         self.create_actions()
-
         self.create_toolbars()
-
-    @Slot()
-    def open_TS_file(self):
-        pass
 
     @Slot()
     def open_dataset_folder(self):
@@ -1661,19 +1764,24 @@ class MainWindow(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.warning(self, "Selection Error", "Please select exactly two time series.")
             return
             
+        # Coleta os parametros da GUI e inicializa o CTSPU
         config = self.control_panel.get_configuration()
         processor = CTSPU(data, config)
+
+        # Transforma o cursor para mostrar execucao em andamento
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
         success = processor.run_single()
         
         if success:
+            # Se a execucao foi bem sucedida, envia os resultados para plotagem e display
             self.control_panel.set_execution_data(processor.score, processor.computing_time, processor.space_usage)
             self.visualization_frame.plot_correlation(processor.data[0], processor.data[1], processor.path)
             self.visualization_frame.plot_heatmap(processor.cost_matrix, processor.path)
         else:
             QtWidgets.QMessageBox.critical(self, "Computation Error", "Failed to compute distance.")
         
+        # Reinicia o cursor
         QtWidgets.QApplication.restoreOverrideCursor()
 
     @Slot()
@@ -1684,7 +1792,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if not train_data or not test_data:
             QtWidgets.QMessageBox.warning(self, "Data Error", "Could not load train or test data for the selected dataset.")
             return
-            
+        
+        # Realiza divisao dos dados baseado no percentual de amostragem escolhido
         config = self.control_panel.get_configuration()
         train_sampling = config.get("train_sampling_percentage", 100.0)
         test_sampling = config.get("test_sampling_percentage", 100.0)
@@ -1695,6 +1804,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         try:
+            # Neste caso os resultados sao salvos direto para logs, retornando somente o estado
             success = processor.run_dataset(train_data, test_data, dataset_name)
             if success:
                 if config.get("run_all_algorithms", False):
@@ -1714,7 +1824,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if not train_data or not test_data:
             QtWidgets.QMessageBox.warning(self, "Data Error", "Could not load train or test data for the selected dataset.")
             return
-            
+        
+        # Realiza divisao dos dados baseado no percentual de amostragem escolhido
         config = self.control_panel.get_configuration()
         train_sampling = config.get("train_sampling_percentage", 100.0)
         test_sampling = config.get("test_sampling_percentage", 100.0)
@@ -1725,6 +1836,7 @@ class MainWindow(QtWidgets.QMainWindow):
         processor = CTSPU(None, config)
         
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+
         try:
             success, acc, comp_time, mem_usage = processor.run_classifier(train_data, test_data, dataset_name, clf_algo)
             if success:
@@ -1738,11 +1850,13 @@ class MainWindow(QtWidgets.QMainWindow):
     @Slot()
     def create_spearmann_correlation(self):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+
         try:
+            # Retornam matrix e datasets utilizados, porem a matriz tbm e salva em log
             success, matrix, labels = CTSPU.compute_spearman_correlation()
             if success:
                 self.visualization_frame.plot_spearman_matrix(matrix, labels)
-                self.visualization_frame.tab_widget.setCurrentIndex(2) # Switch to Spearman tab
+                self.visualization_frame.tab_widget.setCurrentIndex(2) # Muda para tab de Spearman em VisFrame
                 QtWidgets.QMessageBox.information(self, "Success", "Spearman Correlation Matrix generated successfully and saved to experimental_results/spearman_correlation_matrix.csv.")
             else:
                 QtWidgets.QMessageBox.warning(self, "No Data", "Could not find sufficient dataset results in experimental_results/ to compute the matrix. Make sure you run datasets first.")
@@ -1753,6 +1867,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     @Slot()
     def generate_clique_graph(self):
+        # Recupera o log da matrix de spearman, que deve ser computada antes
         try:
             df = pd.read_csv("experimental_results/spearman_correlation_matrix.csv", index_col=0)
             matrix = df.values
@@ -1760,18 +1875,22 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             QtWidgets.QMessageBox.warning(self, "No Matrix", "Spearman matrix not found. Please compute it first.")
             return
-            
+        
+        # Coleta parametro de threshold para adicao de arestas
         threshold = self.control_panel.graph_threshold_spinbox.value()
+
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         try:
+            # Retorna o grafo original e os grupos de vertices dos cliques obtidos
             G, groups = CTSPU.compute_max_clique_groups(matrix, labels, threshold)
             self.visualization_frame.plot_clique_graph(G, groups)
-            self.visualization_frame.tab_widget.setCurrentIndex(3) # Switch to Clique Graph
+            self.visualization_frame.tab_widget.setCurrentIndex(3) # Muda para tab do grafo em VisFrame
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Error", f"Failed to generate graph: {e}")
         finally:
             QtWidgets.QApplication.restoreOverrideCursor()
 
+    # Acoes para a barrinha de abrir diretorio
     def create_actions(self):
         icon = QtGui.QIcon.fromTheme(QtGui.QIcon.ThemeIcon.DocumentOpen, QtGui.QIcon(':/images/open.png'))
         self._open_dataset_act = QtGui.QAction(icon, "&Open Dataset Folder...", self,
@@ -1780,8 +1899,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                  triggered=self.open_dataset_folder)
 
     def create_toolbars(self):
-        # Create a Toolbar and add the actions as buttons
-        file_toolbar = self.addToolBar("File")
+        file_toolbar = self.addToolBar("Open")
         file_toolbar.addAction(self._open_dataset_act)
         
 if __name__ == "__main__":
